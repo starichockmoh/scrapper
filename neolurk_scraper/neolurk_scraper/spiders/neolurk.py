@@ -6,13 +6,12 @@ from neolurk_scraper.items import NeolurkScraperItem
 class NeolurkSpider(scrapy.Spider):
     name = "neolurk"
     allowed_domains = ["neolurk.org"]
-    start_urls = ["https://neolurk.org/wiki/%D0%92%D0%B5%D1%80%D1%85%D0%BD%D1%8F%D1%8F_%D0%92%D0%BE%D0%BB%D1%8C%D1%82%D0%B0_%D1%81_%D1%80%D0%B0%D0%BA%D0%B5%D1%82%D0%B0%D0%BC%D0%B8"]  # Начальная точка сканирования
+    start_urls = ["https://neolurk.org/wiki/%D0%94%D0%BE%D0%B1%D1%80%D1%8B%D0%B5_%D0%B0%D0%BC%D0%B5%D1%80%D0%B8%D0%BA%D0%B0%D0%BD%D1%86%D1%8B"]  # Начальная точка сканирования
 
     def __init__(self, *args, **kwargs):
         super(NeolurkSpider, self).__init__(*args, **kwargs)
         # Загружаем существующие заголовки из output.json
         self.existing_titles = self.load_existing_titles()
-        print("Titles ara", list(self.existing_titles))
 
     def load_existing_titles(self):
         # Проверяем, существует ли файл output.json
@@ -21,10 +20,8 @@ class NeolurkSpider(scrapy.Spider):
             with open(file_path, "r", encoding="utf-8") as f:
                 try:
                     data = json.load(f)
-                    # Извлекаем все заголовки из файла
                     return {item["title"] for item in data}
                 except json.JSONDecodeError:
-                    # Если файл пустой или поврежден, возвращаем пустое множество
                     print('error!!!! JSONDecodeError')
                     return set()
         print('error!!!!')
@@ -42,16 +39,15 @@ class NeolurkSpider(scrapy.Spider):
                 yield scrapy.Request(full_url, callback=self.parse_article)
 
     def parse_article(self, response):
-        # Извлечение данных статьи
         item = NeolurkScraperItem()
         item['title'] = response.xpath('//h1/text()').get().strip()
         if item['title'] in self.existing_titles:
             self.logger.info(f"Статья уже обработана: {item['title']}")
-            return  # Пропускаем статью, если она уже есть в output.json
+            return
         content = " ".join(response.xpath('//div[@class="mw-parser-output"]//p//text()').getall()).strip()
         item['content'] = content
         item['url'] = response.url
-        # Извлечение URL изображений (атрибут src из тега <img>)
+        # Извлечение URL изображений
         item['image_urls'] = response.xpath('//div[@class="mw-parser-output"]//img/@src').getall()
         # Преобразование относительных ссылок на изображения в абсолютные
         item['image_urls'] = [response.urljoin(url) for url in item['image_urls']]

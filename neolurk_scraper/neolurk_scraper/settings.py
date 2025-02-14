@@ -6,7 +6,7 @@ SPIDER_MODULES = ["neolurk_scraper.spiders"]
 NEWSPIDER_MODULE = "neolurk_scraper.spiders"
 
 # Соблюдение правил robots.txt
-ROBOTSTXT_OBEY = False  # Учитываем файл robots.txt
+ROBOTSTXT_OBEY = True  # Учитываем файл robots.txt
 
 # Задержка между запросами
 DOWNLOAD_DELAY = 2  # 2 секунды задержки между запросами
