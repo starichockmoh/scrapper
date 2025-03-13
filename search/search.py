@@ -11,15 +11,31 @@ def search_articles(query, page, page_size):
     """Ищет статьи в Elasticsearch"""
     payload = {
         "query": {
-            "multi_match": {
-                "query": query,
-                "fields": ["title^3", "content"]
+            "bool": {
+                "should": [
+                    {
+                        "multi_match": {
+                            "query": query,
+                            "fields": ["title^5", "content^2"],
+                            "boost": 2
+                        }
+                    },
+                    {
+                        "multi_match": {
+                            "query": query,
+                            "fields": ["title^3", "content"],
+                            "fuzziness": "AUTO",
+                            "boost": 1
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
             }
         },
         "highlight": {
             "fields": {
                 "content": {
-                    "fragment_size": 200,  # Обрезаем контент, чтобы показать важный фрагмент
+                    "fragment_size": 200,
                     "number_of_fragments": 50
                 }
             }
@@ -27,6 +43,7 @@ def search_articles(query, page, page_size):
         "from": from_,
         "size": page_size
     }
+
     response = requests.get(ES_URL, json=payload, headers={"Content-Type": "application/json"})
     data = response.json()
 

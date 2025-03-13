@@ -1,23 +1,19 @@
 import sqlite3
 import requests
 import re
-import json
 
 def remove_html_tags(text):
-    """Удаляем HTML теги с помощью регулярного выражения"""
-    clean_text = re.sub(r'<.*?>', '', text)  # Убирает все HTML теги
+    clean_text = re.sub(r'<.*?>', '', text)
     return clean_text
 
-conn = sqlite3.connect("neolurk.db")  # замените на путь к вашей БД
+conn = sqlite3.connect("neolurk.db")
 cursor = conn.cursor()
 
 cursor.execute("SELECT id, title, content, date FROM articles")
 rows = cursor.fetchall()
 
-# URL Elasticsearch
 ES_URL = "http://localhost:9200/articles/_doc"
 
-# Отправляем данные в Elasticsearch
 for row in rows:
     doc = {
         "id": row[0],
