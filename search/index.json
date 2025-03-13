@@ -1,0 +1,47 @@
+{
+  "settings": {
+    "analysis": {
+        "tokenizer": {
+            "ngram_tokenizer": {
+                "type": "ngram",
+                "min_gram": 2,
+                "max_gram": 3,
+                "token_chars": ["letter", "digit"]
+            }
+        },
+      "filter": {
+        "synonym_filter": {
+          "type": "synonym",
+          "synonyms_path": "/usr/share/elasticsearch/config/synonyms.txt"
+        },
+        "russian_stop": {
+            "type": "stop",
+            "stopwords": "_russian_"
+        }
+      },
+      "analyzer": {
+        "custom_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "synonym_filter", "russian_stop"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+        "id": { "type": "integer" },
+        "title": {
+            "type": "text",
+            "analyzer": "custom_analyzer"
+        },
+        "content": {
+            "type": "text",
+            "analyzer": "custom_analyzer"
+        },
+        "date": {
+            "type": "text"
+        }
+    }
+  }
+}
