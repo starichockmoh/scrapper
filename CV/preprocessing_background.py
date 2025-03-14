@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import io
 
-image_folder = 'downloaded_images'
+image_folder = 'unique_images'
 output_folder = 'processed_images_back'
 
 def remove_background_with_rembg(input_path, output_path):

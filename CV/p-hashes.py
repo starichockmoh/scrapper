@@ -1,6 +1,7 @@
 import os
 import cv2
 import imagehash
+import shutil
 from PIL import Image
 from preprocessing import resize_image, convert_to_grayscale, denoise_image
 
@@ -8,6 +9,7 @@ from preprocessing import resize_image, convert_to_grayscale, denoise_image
 threshold = 6
 image_folder = 'downloaded_images_urls'
 output_folder = 'processed_images'
+unique_folder = 'unique_images'
 
 
 def preprocess_image(image, size=(32, 32)):
@@ -19,12 +21,16 @@ def preprocess_image(image, size=(32, 32)):
     return image
 
 # Функция для нахождения похожих изображений
-def find_similar_images(image_folder, output_folder, threshold=5):
+def find_similar_images(image_folder, output_folder, unique_folder, threshold=5):
     # Словарь для хранения хэшей изображений
     image_hashes = {}
+    duplicate_groups = {}
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
+
+    if not os.path.exists(unique_folder):
+        os.makedirs(unique_folder)
 
     # Проходим по всем файлам в папке
     for filename in os.listdir(image_folder):
@@ -43,32 +49,40 @@ def find_similar_images(image_folder, output_folder, threshold=5):
 
             phash = imagehash.phash(Image.fromarray(image))
 
-            image_hashes[filename] = phash
+            found_duplicate = False
+            for existing_filename, existing_hash in image_hashes.items():
+                if phash - existing_hash <= threshold:
+                    found_duplicate = True
+                    duplicate_groups.setdefault(existing_filename, []).append(filename)
+                    break
+
+            if not found_duplicate:
+                image_hashes[filename] = phash
         except Exception as e:
             print(f"Ошибка при обработке {filename}: {e}")
 
-    similar_images = []
-    hash_items = list(image_hashes.items())
-    for i in range(0, len(hash_items)):
-        for j in range(i + 1, len(hash_items)):
-            image1, hash1 = hash_items[i]
-            image2, hash2 = hash_items[j]
-            # Вычисляем расстояние Хэмминга между хэшами
-            hamming_distance = hash1 - hash2
+    # Копируем только по одному экземпляру из каждой группы дубликатов
+    saved_files = set()
+    for original, duplicates in duplicate_groups.items():
+        if original not in saved_files:
+            shutil.copy(os.path.join(image_folder, original), os.path.join(unique_folder, original))
+            saved_files.add(original)
 
-            # Если изображения похожи, добавляем их в список
-            if hamming_distance <= threshold:
-                similar_images.append((image1, image2, hamming_distance))
+     # Также копируем остальные уникальные файлы
+    for filename in image_hashes.keys():
+        if filename not in saved_files:
+            shutil.copy(os.path.join(image_folder, filename), os.path.join(unique_folder, filename))
+            saved_files.add(filename)
+
+    return duplicate_groups
 
 
-    return similar_images
+duplicates = find_similar_images(image_folder, output_folder, unique_folder, threshold)
 
 
-similar_images = find_similar_images(image_folder, output_folder, threshold)
-
-if similar_images:
-    print("Найдены похожие изображения:")
-    for img1, img2, dist in similar_images:
-        print(f"Изображения: {img1} и {img2} - Расстояние Хэмминга: {dist}")
+if duplicates:
+    print("Найдены группы дубликатов:")
+    for original, dup_list in duplicates.items():
+        print(f"Оригинал: {original}, Дубликаты: {', '.join(dup_list)}")
 else:
-    print("Похожие изображения не найдены.")
+    print("Дубликаты не найдены. Все изображения уникальны.")
