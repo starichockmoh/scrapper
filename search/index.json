@@ -23,7 +23,7 @@
         "custom_analyzer": {
           "type": "custom",
           "tokenizer": "standard",
-          "filter": ["lowercase", "synonym_filter", "russian_stop"]
+          "filter": ["lowercase", "synonym_filter", "russian_morphology", "russian_stop"]
         }
       }
     }

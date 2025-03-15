@@ -1,12 +1,20 @@
 import requests
 import re
-
+import pymorphy3
 ES_URL = "http://localhost:9200/articles/_search"
+
+morph = pymorphy3.MorphAnalyzer()
+
+def lemmatize_text(text):
+    words = text.split()
+    lemmatized_words = [morph.parse(word)[0].normal_form for word in words]
+    return " ".join(lemmatized_words)
 
 
 def search_articles(query, page, page_size):
     # Расчет отступа (с какого документа начинать)
     from_ = (page - 1) * page_size
+    normalized_query = lemmatize_text(query)
 
     """Ищет статьи в Elasticsearch"""
     payload = {
@@ -15,15 +23,15 @@ def search_articles(query, page, page_size):
                 "should": [
                     {
                         "multi_match": {
-                            "query": query,
-                            "fields": ["title^5", "content^2"],
+                            "query": normalized_query,
+                            "fields": ["title^5", "lemmatize_content^2"],
                             "boost": 2
                         }
                     },
                     {
                         "multi_match": {
-                            "query": query,
-                            "fields": ["title^3", "content"],
+                            "query": normalized_query,
+                            "fields": ["title^3", "lemmatize_content"],
                             "fuzziness": "AUTO",
                             "boost": 1
                         }
@@ -34,7 +42,7 @@ def search_articles(query, page, page_size):
         },
         "highlight": {
             "fields": {
-                "content": {
+                "lemmatize_content": {
                     "fragment_size": 200,
                     "number_of_fragments": 50
                 }
@@ -57,7 +65,7 @@ def search_articles(query, page, page_size):
 
     for hit in hits:
         print(f"✳️ {hit['_source']['title']} ({hit['_source']['date']}) score: {hit['_score']} id: {hit['_id']}")
-        snippet = hit.get("highlight", {}).get("content", ["..."])[0]
+        snippet = hit.get("highlight", {}).get("lemmatize_content", ["..."])[0]
         snippet = highlight_em(snippet)
         print(f"Content: {snippet}")
         print(f"Date: {hit['_source']['date']}")
